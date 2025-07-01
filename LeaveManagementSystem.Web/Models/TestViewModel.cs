@@ -6,5 +6,6 @@ namespace LeaveManagementSystem.Web.Models
     {
         public string Name { get; set; }
         public DateTime? DateOfBirth { get; set; }
+
     }
 }
