@@ -2,8 +2,23 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using LeaveManagementSystem.Application.Services.LeaveAllocations;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace LeaveManagementSystem.Web.Areas.Identity.Pages.Account
 {
@@ -11,25 +26,20 @@ namespace LeaveManagementSystem.Web.Areas.Identity.Pages.Account
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly ILeaveAllocationsService _leaveAllocationsService;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IUserStore<ApplicationUser> _userStore;
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
-        private readonly IWebHostEnvironment _hostEnvironment;
 
         public RegisterModel(
-            ILeaveAllocationsService leaveAllocationsService,
             UserManager<ApplicationUser> userManager,
             IUserStore<ApplicationUser> userStore,
             SignInManager<ApplicationUser> signInManager,
             RoleManager<IdentityRole> roleManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender,
-            IWebHostEnvironment hostEnvironment)
+            IEmailSender emailSender)
         {
-            this._leaveAllocationsService = leaveAllocationsService;
             _userManager = userManager;
             _userStore = userStore;
             _emailStore = GetEmailStore();
@@ -37,7 +47,6 @@ namespace LeaveManagementSystem.Web.Areas.Identity.Pages.Account
             this._roleManager = roleManager;
             _logger = logger;
             _emailSender = emailSender;
-            this._hostEnvironment = hostEnvironment;
         }
 
         /// <summary>
@@ -46,6 +55,8 @@ namespace LeaveManagementSystem.Web.Areas.Identity.Pages.Account
         /// </summary>
         [BindProperty]
         public InputModel Input { get; set; } = new InputModel();
+
+        public string[] RoleNames { get; set; }
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -108,8 +119,11 @@ namespace LeaveManagementSystem.Web.Areas.Identity.Pages.Account
             [Display(Name = "Date Of Birth")]
             public DateOnly DateOfBirth { get; set; }
 
+            [Required]
             public string RoleName { get; set; }
-            public string[] RoleNames { get; set; }
+            
+
+
         }
 
 
@@ -118,10 +132,10 @@ namespace LeaveManagementSystem.Web.Areas.Identity.Pages.Account
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
             var roles = await _roleManager.Roles
-                .Select(q => q.Name)
-                .Where(q => q != "Administrator")
-                .ToArrayAsync();
-            Input.RoleNames = roles;
+                           .Select(q => q.Name)
+                           .Where(q => q != "Administrator")
+                           .ToArrayAsync();
+            RoleNames = roles;
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
@@ -134,28 +148,28 @@ namespace LeaveManagementSystem.Web.Areas.Identity.Pages.Account
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+
                 user.DateOfBirth = Input.DateOfBirth;
                 user.FirstName = Input.FirstName;
                 user.LastName = Input.LastName;
-
+                
                 var result = await _userManager.CreateAsync(user, Input.Password);
 
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User created a new account with password.");
+                    //await _userManager.AddToRoleAsync(user, Input.RoleName);
 
-                    if (Input.RoleName == Roles.Supervisor)
+                    if(Input.RoleName == Roles.Supervisor)
                     {
                         await _userManager.AddToRolesAsync(user, [Roles.Employee, Roles.Supervisor]);
                     }
                     else
                     {
-                        await _userManager.AddToRoleAsync(user, Roles.Employee);
+                        await _userManager.AddToRoleAsync(user, "Employee");
                     }
 
-                    var userId = await _userManager.GetUserIdAsync(user);
-                    await _leaveAllocationsService.AllocateLeave(userId);
-
+                        var userId = await _userManager.GetUserIdAsync(user);
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
                     var callbackUrl = Url.Page(
@@ -164,15 +178,8 @@ namespace LeaveManagementSystem.Web.Areas.Identity.Pages.Account
                         values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
                         protocol: Request.Scheme);
 
-                    // grab the template
-                    var emailTemplatePath = Path.Combine(_hostEnvironment.WebRootPath, "templates", "email_layout.html");
-                    var template = await System.IO.File.ReadAllTextAsync(emailTemplatePath);
-                    var messageBody = template
-                        .Replace("{UserName}", $"{Input.FirstName} {Input.LastName}")
-                        .Replace("{MessageContent}",
+                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
                         $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
-
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email", messageBody);
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
@@ -191,6 +198,11 @@ namespace LeaveManagementSystem.Web.Areas.Identity.Pages.Account
             }
 
             // If we got this far, something failed, redisplay form
+            var roles = await _roleManager.Roles
+                           .Select(q => q.Name)
+                           .Where(q => q != "Administrator")
+                           .ToArrayAsync();
+            RoleNames = roles;
             return Page();
         }
 

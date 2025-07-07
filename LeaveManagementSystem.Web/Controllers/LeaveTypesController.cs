@@ -12,6 +12,7 @@ using LeaveManagementSystem.Web.Services;
 
 namespace LeaveManagementSystem.Web.Controllers
 {
+    [Authorize(Roles = Roles.Administrator)]
     public class LeaveTypesController(ILeaveTypeServices leaveTypesServices) : Controller
     {
         private const string NameExistsValidationMessage = "This leave type already exists in the database";

@@ -8,19 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Areas\Identity\Pages\**" />
     <Compile Remove="Views\LeaveAllocation\**" />
     <Compile Remove="Views\LeaveRequests\**" />
     <Compile Remove="Views\Periods\**" />
-    <Content Remove="Areas\Identity\Pages\**" />
     <Content Remove="Views\LeaveAllocation\**" />
     <Content Remove="Views\LeaveRequests\**" />
     <Content Remove="Views\Periods\**" />
-    <EmbeddedResource Remove="Areas\Identity\Pages\**" />
     <EmbeddedResource Remove="Views\LeaveAllocation\**" />
     <EmbeddedResource Remove="Views\LeaveRequests\**" />
     <EmbeddedResource Remove="Views\Periods\**" />
-    <None Remove="Areas\Identity\Pages\**" />
     <None Remove="Views\LeaveAllocation\**" />
     <None Remove="Views\LeaveRequests\**" />
     <None Remove="Views\Periods\**" />
@@ -42,13 +38,10 @@
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.17" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.17" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.17" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.17" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.17" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Areas\Identity\" />
   </ItemGroup>
 
 </Project>
